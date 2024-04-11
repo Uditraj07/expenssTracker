@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="text-center mt-[30px] border-2 border-solid border-pink-500  w-[350px] mx-auto rounded-3xl py-[10px]">
+         <form action="" method="post" class="flex flex-col  justify-center items-center">
+            <label for="Amount">Amount</label><br>
+            <input type="text" name="amount" placeholder="Enter Amount" class="border-2 border-black border-solid rounded-lg py-[10px] px-[10px] w-full"><br>
+            <label for="purpse">purpose</label>
+            <select name="Purpose" id="purpose" class="border-2 border-black border-solid rounded-lg py-[10px] px-[10px] w-full my-[10px]">
+                <option value="food">Food</option>
+                <option value="movie">Movie</option>
+                <option value="study">Study</option>
+                <option value="rent">Rent</option>
+              </select>
+            <button type="submit" class="border-2 border-black border-solid rounded-lg bg-purple-500 text-black p-[5px] w-full">Submit</button>
+         </form>   
+    </div>
+    <div id="details" class="mt-[30px] border-[2px] border-solid border-pink-900 rounded-lg max-w-[1250px] mx-auto py-[20px]">
+        <ul class="flex flex-col justify-center items-center  gap-y-[5px] list-none">
+        </ul>
+    </div> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            let form = document.querySelector("form");
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                let amount = event.target.amount.value;
+                let purpose = event.target.Purpose.value;
+                console.log(amount)
+                let expenseDetails = {
+                    amount: amount,
+                    purpose: purpose
+                }
+                addtoDB(expenseDetails).then((res) => {
+                    event.target.amount.value='';
+                    event.target.Purpose.value='';
+                    addtoList(res.data);
+                })
+            });
+        });
+        function addtoList(expenseDetails) {
+            let li = document.createElement("li");
+            li.className="border-b-[2px] border-solid border-pink-900"
+
+            let form = document.createElement('form');
+            form.method = 'put';
+            form.classList.add("flex")
+            form.classList.add('gap-x-[3px]')
+
+
+            let id_input = document.createElement('input');
+            id_input.name = 'id';
+            id_input.type = 'text';
+            id_input.value = expenseDetails.id;
+            id_input.classList.add('hidden');
+            form.append(id_input);
+
+
+            let amount_input = document.createElement('input');
+            amount_input.readOnly=true;
+            amount_input.name = 'amount';
+            amount_input.type = 'text';
+            amount_input.value = expenseDetails.amount;
+            amount_input.classList.add('readonly')
+            form.append(amount_input);
+
+
+            let purpose_input = document.createElement('input');
+            purpose_input.readOnly=true;
+            purpose_input.name = 'purpose';
+            purpose_input.type = 'text';
+            purpose_input.value = expenseDetails.purpose;
+            purpose_input.classList.add('readonly')
+            form.append(purpose_input);
+
+            let deleteButton = document.createElement("button");
+            deleteButton.innerText = "Delete";
+            deleteButton.type='button';
+            deleteButton.className="border-[2px] border-solid border-black bg-purple-500 text-black font-bold p-[5px] mx-[20px] rounded-lg"
+            form.append(deleteButton)
+
+            
+            let editButton = document.createElement("button");
+            editButton.innerText = "Edit";
+            editButton.className="border-[2px] border-solid border-black bg-purple-500 text-black font-bold p-[5px] mx-[20px] rounded-lg"
+            editButton.type='button';
+            form.append(editButton);
+
+            let cancelButton = document.createElement("button");
+            cancelButton.innerText = "Cancel";
+            cancelButton.className="border-[2px] border-solid border-black bg-purple-500 text-black font-bold p-[5px] mx-[20px] rounded-lg hidden"
+            cancelButton.type='button';
+            form.append(cancelButton);
+
+            let saveButton = document.createElement("button");
+            saveButton.innerText = "Save";
+            saveButton.className="border-[2px] border-solid border-black bg-purple-500 text-black font-bold p-[5px] mx-[20px] rounded-lg hidden"
+            saveButton.type='Submit';
+            form.append(saveButton);
+
+            li.append(form)
+            console.log(li)
+            document.querySelector("#details").querySelector("ul").append(li);
+            
+            deleteButton.addEventListener('click',()=>{
+                deleteRecord(id_input.value).then((res)=>{
+                deleteButton.parentElement.parentElement.remove()
+                }).catch((error)=>{
+                    console.log(error)
+                })
+            })
+            editButton.addEventListener('click',()=>{
+                amount_input.readOnly=false;
+                purpose_input.readOnly=false;
+                deleteButton.classList.add('hidden');
+                editButton.classList.add('hidden');
+                cancelButton.classList.remove('hidden');
+                saveButton.classList.remove('hidden');
+                saveButton.addEventListener('click',(event)=>{
+                    event.preventDefault()
+                    let expenseDetails={
+                        amount:amount_input.value,
+                        purpose:purpose_input.value,
+                    }
+                    updateDetails(id_input.value,expenseDetails).then((res)=>{
+                        let data=res.data;
+                        amount_input.value=expenseDetails.amount;
+                        purpose_input.value=expenseDetails.purpose;
+                        amount_input.readOnly=true;
+                        purpose_input.readOnly=true;
+                        deleteButton.classList.remove('hidden');
+                        editButton.classList.remove('hidden');
+                        cancelButton.classList.add('hidden');
+                        saveButton.classList.add('hidden');
+                    }).catch((error)=>{
+                        console.log(error)
+                    })
+                })
+                cancelButton.addEventListener('click',()=>{
+                    window.location.reload();
+                })
+
+            })
+        }
+        function addtoDB(expenseDetails) {
+            return axios.post("http://localhost:5000/Expenses/add-expense", expenseDetails)
+        }
+
+        function deleteRecord(id){
+            return axios.delete(`http://localhost:5000/Expenses/delete/${id}`)
+        }
+
+        function updateDetails(id,expenseDetails){
+            return axios.put(`http://localhost:5000/Expenses/update/${id}`,expenseDetails)
+        }
+
+        function fetchAll(){
+            axios.get("http://localhost:5000/Expenses/get-all-expenses").then((res)=>{
+                let data=res.data;
+                data.forEach((expenseDetails)=>{
+                    addtoList(expenseDetails);  
+                })
+            })
+        }
+        fetchAll()
+
+    </script>
+</body>
+</html>
